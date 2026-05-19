@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LiveurLog">
+  <meta name="description" content="Journal d'incidents de livraison — terrain">
+  <title>LivreurLog</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1117;
+      --bg2: #171920;
+      --bg3: #1e2029;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.14);
+      --text: #f0f0f0;
+      --text2: #9ca3af;
+      --text3: #6b7280;
+      --accent: #f97316;
+      --accent2: #fb923c;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding-bottom: 80px;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    .app-header {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .app-logo {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+    .app-logo span { color: var(--accent); }
+    .header-date {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text3);
+    }
+
+    /* STATS BAR */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stat-pill {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      text-align: center;
+    }
+    .stat-pill .num {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+    .stat-pill .lbl {
+      font-size: 9px;
+      color: var(--text3);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: 'DM Mono', monospace;
+    }
+    .stat-pill.accent .num { color: var(--accent); }
+    .stat-pill.red .num { color: var(--red); }
+
+    /* VIEWS */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* BOTTOM NAV */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 200;
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 12px 0 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text3);
+      font-family: 'Syne', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      transition: color 0.15s;
+    }
+    .nav-btn.active { color: var(--accent); }
+    .nav-btn svg { width: 20px; height: 20px; }
+
+    /* ADD BUTTON */
+    .fab {
+      position: fixed;
+      bottom: 72px;
+      right: 20px;
+      width: 52px;
+      height: 52px;
+      background: var(--accent);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(249,115,22,0.4);
+      z-index: 150;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .fab:active { transform: scale(0.93); box-shadow: 0 2px 10px rgba(249,115,22,0.3); }
+    .fab svg { width: 24px; height: 24px; color: white; }
+
+    /* INCIDENT LIST */
+    .list-section { padding: 16px 16px 0; }
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .incident-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .incident-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+    .incident-card.haute::before { background: var(--red); }
+    .incident-card.moyenne::before { background: var(--amber); }
+    .incident-card.faible::before { background: var(--green); }
+    .incident-card:active { background: var(--bg3); }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+    .card-client {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      flex: 1;
+      padding-right: 8px;
+    }
+    .badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .badge.haute { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+    .badge.moyenne { background: rgba(245,158,11,0.15); color: #fcd34d; border: 1px solid rgba(245,158,11,0.3); }
+    .badge.faible { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.5;
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-meta {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text3);
+    }
+    .meta-item svg { width: 12px; height: 12px; }
+    .type-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--accent2);
+      background: rgba(249,115,22,0.1);
+      border: 1px solid rgba(249,115,22,0.2);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center;
+      padding: 60px 30px;
+    }
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--bg3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .empty-icon svg { width: 24px; height: 24px; color: var(--text3); }
+    .empty-title { font-size: 16px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+    .empty-sub { font-size: 13px; color: var(--text3); line-height: 1.5; }
+
+    /* MODAL / FORM */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 300;
+      display: none;
+      align-items: flex-end;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet {
+      background: var(--bg2);
+      border-radius: 20px 20px 0 0;
+      border-top: 1px solid var(--border2);
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 0 0 40px;
+      animation: slideUp 0.25s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border2);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-title { font-size: 17px; font-weight: 700; }
+    .modal-close {
+      width: 32px; height: 32px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text2);
+    }
+    .modal-close svg { width: 16px; height: 16px; }
+
+    .form-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-input, .form-select, .form-textarea {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      padding: 12px 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent);
+    }
+    .form-textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+    .form-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6,9 12,15 18,9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+    .form-select option { background: #1e2029; }
+
+    .priority-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .priority-btn {
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text2);
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .priority-btn.selected-haute { background: rgba(239,68,68,0.15); border-color: var(--red); color: #fca5a5; }
+    .priority-btn.selected-moyenne { background: rgba(245,158,11,0.15); border-color: var(--amber); color: #fcd34d; }
+    .priority-btn.selected-faible { background: rgba(34,197,94,0.15); border-color: var(--green); color: #86efac; }
+
+    .btn-submit {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 15px;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 4px;
+      transition: background 0.15s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    .btn-submit:active { transform: scale(0.98); background: #ea6c0a; }
+
+    /* STATS VIEW */
+    .stats-view { padding: 16px; }
+    .chart-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text2);
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+    }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .bar-label { font-size: 12px; color: var(--text2); width: 110px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+    .bar-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.6s ease-out; }
+    .bar-count { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; width: 24px; text-align: right; }
+
+    .big-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .big-stat {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+    .big-stat .n { font-size: 28px; font-weight: 800; color: var(--accent); }
+    .big-stat .l { font-size: 11px; color: var(--text3); margin-top: 4px; font-family: 'DM Mono', monospace; text-transform: uppercase; }
+
+    /* CLIENTS VIEW */
+    .clients-view { padding: 16px; }
+    .client-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .client-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .client-info { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; line-height: 1.7; }
+    .client-info span { color: var(--text2); }
+
+    /* DETAIL VIEW */
+    .detail-view { padding: 16px; display: none; }
+    .detail-view.active { display: block; }
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      margin-bottom: 16px;
+    }
+    .back-btn svg { width: 18px; height: 18px; }
+    .detail-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .detail-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-client { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    .detail-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .detail-body { padding: 16px; }
+    .detail-field { margin-bottom: 14px; }
+    .detail-field-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .detail-field-value { font-size: 14px; color: var(--text); line-height: 1.5; }
+    .delete-btn {
+      width: 100%;
+      padding: 13px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: var(--radius);
+      color: #fca5a5;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: background 0.15s;
+    }
+    .delete-btn:active { background: rgba(239,68,68,0.2); }
+
+    /* INSTALL BANNER */
+    .install-banner {
+      margin: 16px;
+      background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(249,115,22,0.05));
+      border: 1px solid rgba(249,115,22,0.3);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: none;
+    }
+    .install-banner.show { display: block; }
+    .install-title { font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+    .install-sub { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+    .install-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 18px;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    /* FILTER BAR */
+    .filter-bar {
+      padding: 12px 16px 0;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+      font-family: 'DM Mono', monospace;
+    }
+    .filter-chip.active {
+      background: rgba(249,115,22,0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-top">
+    <div class="app-logo">Livreur<span>Log</span></div>
+    <div class="header-date" id="today-date"></div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-pill accent">
+      <div class="num" id="stat-total">0</div>
+      <div class="lbl">Incidents</div>
+    </div>
+    <div class="stat-pill red">
+      <div class="num" id="stat-high">0</div>
+      <div class="lbl">Haute priorité</div>
+    </div>
+    <div class="stat-pill">
+      <div class="num" id="stat-mins">0</div>
+      <div class="lbl">Min perdues</div>
+    </div>
+  </div>
+</div>
+
+<!-- VIEWS -->
+
+<!-- JOURNAL VIEW -->
+<div id="view-journal" class="view active">
+  <div class="install-banner" id="install-banner">
+    <div class="install-title">📲 Installer l'app</div>
+    <div class="install-sub">Ajoute LivreurLog à ton écran d'accueil pour l'utiliser hors ligne.</div>
+    <button class="install-btn" id="install-btn">Installer maintenant</button>
+  </div>
+
+  <div class="filter-bar" id="filter-bar">
+    <div class="filter-chip active" data-filter="tous">Tous</div>
+    <div class="filter-chip" data-filter="Haute">🔴 Haute</div>
+    <div class="filter-chip" data-filter="Moyenne">🟡 Moyenne</div>
+    <div class="filter-chip" data-filter="Faible">🟢 Faible</div>
+    <div class="filter-chip" data-filter="Pas de contact">Sans contact</div>
+    <div class="filter-chip" data-filter="Mauvaise entrée">Entrée</div>
+    <div class="filter-chip" data-filter="Heures désuètes">Heures</div>
+    <div class="filter-chip" data-filter="Code manquant">Code</div>
+  </div>
+
+  <div class="list-section">
+    <div class="section-label" id="list-label">Tous les incidents</div>
+    <div id="incident-list"></div>
+  </div>
+</div>
+
+<!-- STATS VIEW -->
+<div id="view-stats" class="view">
+  <div class="stats-view" id="stats-content"></div>
+</div>
+
+<!-- CLIENTS VIEW -->
+<div id="view-clients" class="view">
+  <div class="clients-view">
+    <div class="section-label">Fiches clients</div>
+    <div id="client-list"></div>
+  </div>
+</div>
+
+<!-- DETAIL VIEW (overlay) -->
+<div id="view-detail" class="detail-view">
+  <button class="back-btn" onclick="closeDetail()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15,18 9,12 15,6"/></svg>
+    Retour
+  </button>
+  <div id="detail-content"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-journal" onclick="switchView('journal')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
+    Journal
+  </button>
+  <button class="nav-btn" id="nav-stats" onclick="switchView('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+    Stats
+  </button>
+  <button class="nav-btn" id="nav-clients" onclick="switchView('clients')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Clients
+  </button>
+</nav>
+
+<!-- FAB -->
+<button class="fab" onclick="openForm()" aria-label="Ajouter un incident">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- ADD INCIDENT MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title">Nouvel incident</div>
+      <button class="modal-close" onclick="closeForm()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="form-body">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-input" id="f-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom du client</label>
+        <input type="text" class="form-input" id="f-client" placeholder="Ex: Clinique Gatineau">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type de problème</label>
+        <select class="form-select" id="f-type">
+          <option value="">Choisir...</option>
+          <option>Pas de contact</option>
+          <option>Mauvaise entrée</option>
+          <option>Heures désuètes</option>
+          <option>Code manquant</option>
+          <option>Adresse incorrecte</option>
+          <option>Refus de livraison</option>
+          <option>Autre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="f-desc" placeholder="Décris ce qui s'est passé..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Temps perdu (minutes)</label>
+        <input type="number" class="form-input" id="f-temps" placeholder="Ex: 15" min="0" max="300">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priorité</label>
+        <div class="priority-row">
+          <button class="priority-btn" data-p="Haute" onclick="selectPriority('Haute')">🔴 Haute</button>
+          <button class="priority-btn" data-p="Moyenne" onclick="selectPriority('Moyenne')">🟡 Moyenne</button>
+          <button class="priority-btn" data-p="Faible" onclick="selectPriority('Faible')">🟢 Faible</button>
+        </div>
+      </div>
+      <button class="btn-submit" onclick="saveIncident()">Enregistrer l'incident</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- DATA ----
+  let incidents = JSON.parse(localStorage.getItem('incidents') || '[]');
+  let selectedPriority = '';
+  let currentFilter = 'tous';
+  let deferredPrompt = null;
+
+  function save() {
+    localStorage.setItem('incidents', JSON.stringify(incidents));
+  }
+
+  // ---- DATE ----
+  const today = new Date();
+  document.getElementById('today-date').textContent = today.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+
+  // ---- STATS ----
+  function updateStats() {
+    const total = incidents.length;
+    const high = incidents.filter(i => i.priority === 'Haute').length;
+    const mins = incidents.reduce((s, i) => s + (parseInt(i.temps) || 0), 0);
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-high').textContent = high;
+    document.getElementById('stat-mins').textContent = mins;
+  }
+
+  // ---- RENDER LIST ----
+  function renderList() {
+    const list = document.getElementById('incident-list');
+    let filtered = [...incidents].sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (currentFilter !== 'tous') {
+      filtered = filtered.filter(i => i.priority === currentFilter || i.type === currentFilter);
+    }
+    document.getElementById('list-label').textContent = currentFilter === 'tous' ? `Tous les incidents (${filtered.length})` : `Filtrés: ${currentFilter} (${filtered.length})`;
+    if (filtered.length === 0) {
+      list.innerHTML = `<div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="empty-title">Aucun incident</div>
+        <div class="empty-sub">Appuie sur + pour documenter ton premier problème de livraison.</div>
+      </div>`;
+      return;
+    }
+    list.innerHTML = filtered.map(i => `
+      <div class="incident-card ${i.priority.toLowerCase()}" onclick="showDetail('${i.id}')">
+        <div class="card-top">
+          <div class="card-client">${i.client}</div>
+          <span class="badge ${i.priority.toLowerCase()}">${i.priority}</span>
+        </div>
+        <div class="card-desc">${i.desc}</div>
+        <div class="card-meta">
+          <div class="meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ${i.date}
+          </div>
+          ${i.temps ? `<div class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>${i.temps} min</div>` : ''}
+          ${i.type ? `<span class="type-tag">${i.type}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ---- FILTERS ----
+  document.getElementById('filter-bar').addEventListener('click', e => {
+    const chip = e.target.closest('.filter-chip');
+    if (!chip) return;
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderList();
+  });
+
+  // ---- DETAIL ----
+  function showDetail(id) {
+    const inc = incidents.find(i => i.id === id);
+    if (!inc) return;
+    document.getElementById('detail-content').innerHTML = `
+      <div class="detail-card">
+        <div class="detail-header">
+          <div class="detail-client">${inc.client}</div>
+          <div class="detail-badges">
+            <span class="badge ${inc.priority.toLowerCase()}">${inc.priority}</span>
+            ${inc.type ? `<span class="type-tag">${inc.type}</span>` : ''}
+          </div>
+        </div>
+        <div class="detail-body">
+          <div class="detail-field">
+            <div class="detail-field-label">Date</div>
+            <div class="detail-field-value">${inc.date}</div>
+          </div>
+          <div class="detail-field">
+            <div class="detail-field-label">Description</div>
+            <div class="detail-field-value">${inc.desc}</div>
+          </div>
+          ${inc.temps ? `<div class="detail-field"><div class="detail-field-label">Temps perdu</div><div class="detail-field-value">${inc.temps} minutes</div></div>` : ''}
+        </div>
+      </div>
+      <button class="delete-btn" onclick="deleteIncident('${inc.id}')">🗑 Supprimer cet incident</button>
+    `;
+    document.getElementById('view-detail').classList.add('active');
+    document.getElementById('view-journal').style.display = 'none';
+    document.querySelector('.bottom-nav').style.display = 'none';
+    document.querySelector('.fab').style.display = 'none';
+  }
+
+  function closeDetail() {
+    document.getElementById('view-detail').classList.remove('active');
+    document.getElementById('view-journal').style.display = '';
+    document.querySelector('.bottom-nav').style.display = '';
+    document.querySelector('.fab').style.display = '';
+  }
+
+  function deleteIncident(id) {
+    if (!confirm('Supprimer cet incident?')) return;
+    incidents = incidents.filter(i => i.id !== id);
+    save();
+    updateStats();
+    renderList();
+    closeDetail();
+  }
+
+  // ---- STATS VIEW ----
+  function renderStats() {
+    const types = {};
+    incidents.forEach(i => { types[i.type || 'Autre'] = (types[i.type || 'Autre'] || 0) + 1; });
+    const maxType = Math.max(...Object.values(types), 1);
+    const totalMins = incidents.reduce((s, i) => s + (parseInt(i.temps) || 0), 0);
+    const haute = incidents.filter(i => i.priority === 'Haute').length;
+
+    const typeBars = Object.entries(types).sort((a,b) => b[1]-a[1]).map(([t, n]) => `
+      <div class="bar-row">
+        <div class="bar-label">${t}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(n/maxType*100)}%"></div></div>
+        <div class="bar-count">${n}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('stats-content').innerHTML = `
+      <div class="section-label" style="margin-bottom:12px">Vue d'ensemble</div>
+      <div class="big-stats">
+        <div class="big-stat"><div class="n">${incidents.length}</div><div class="l">Total incidents</div></div>
+        <div class="big-stat"><div class="n">${totalMins}</div><div class="l">Min perdues</div></div>
+        <div class="big-stat"><div class="n">${haute}</div><div class="l">Haute priorité</div></div>
+        <div class="big-stat"><div class="n">${Object.keys(types).length}</div><div class="l">Types différents</div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Incidents par type</div>
+        ${typeBars || '<div style="color:var(--text3);font-size:13px">Aucune donnée encore</div>'}
+      </div>
+    `;
+  }
+
+  // ---- CLIENTS VIEW ----
+  function renderClients() {
+    const clientMap = {};
+    incidents.forEach(i => {
+      if (!clientMap[i.client]) clientMap[i.client] = { count: 0, types: new Set(), lastDate: '' };
+      clientMap[i.client].count++;
+      if (i.type) clientMap[i.client].types.add(i.type);
+      if (i.date > clientMap[i.client].lastDate) clientMap[i.client].lastDate = i.date;
+    });
+    const list = document.getElementById('client-list');
+    const entries = Object.entries(clientMap).sort((a,b) => b[1].count - a[1].count);
+    if (entries.length === 0) {
+      list.innerHTML = `<div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+        <div class="empty-title">Aucun client encore</div>
+        <div class="empty-sub">Les clients apparaîtront ici au fur et à mesure que tu documentes des incidents.</div>
+      </div>`;
+      return;
+    }
+    list.innerHTML = entries.map(([name, data]) => `
+      <div class="client-card">
+        <div class="client-name">${name}</div>
+        <div class="client-info">
+          <div>Incidents: <span>${data.count}</span></div>
+          ${data.types.size ? `<div>Types: <span>${[...data.types].join(', ')}</span></div>` : ''}
+          ${data.lastDate ? `<div>Dernier: <span>${data.lastDate}</span></div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ---- NAVIGATION ----
+  function switchView(view) {
+    ['journal','stats','clients'].forEach(v => {
+      document.getElementById('view-' + v).classList.toggle('active', v === view);
+      document.getElementById('nav-' + v).classList.toggle('active', v === view);
+    });
+    if (view === 'stats') renderStats();
+    if (view === 'clients') renderClients();
+  }
+
+  // ---- FORM ----
+  function openForm() {
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('f-client').value = '';
+    document.getElementById('f-type').value = '';
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-temps').value = '';
+    selectedPriority = '';
+    document.querySelectorAll('.priority-btn').forEach(b => b.className = 'priority-btn');
+    document.getElementById('add-modal').classList.add('open');
+  }
+
+  function closeForm() {
+    document.getElementById('add-modal').classList.remove('open');
+  }
+
+  function selectPriority(p) {
+    selectedPriority = p;
+    document.querySelectorAll('.priority-btn').forEach(b => {
+      b.className = 'priority-btn' + (b.dataset.p === p ? ` selected-${p.toLowerCase()}` : '');
+    });
+  }
+
+  function saveIncident() {
+    const date = document.getElementById('f-date').value;
+    const client = document.getElementById('f-client').value.trim();
+    const type = document.getElementById('f-type').value;
+    const desc = document.getElementById('f-desc').value.trim();
+    const temps = document.getElementById('f-temps').value;
+    if (!date || !client || !desc || !selectedPriority) {
+      alert('Remplis la date, le client, la description et la priorité.');
+      return;
+    }
+    incidents.push({
+      id: Date.now().toString(),
+      date, client, type, desc,
+      temps: temps ? parseInt(temps) : null,
+      priority: selectedPriority
+    });
+    save();
+    updateStats();
+    renderList();
+    closeForm();
+  }
+
+  // ---- INSTALL PWA ----
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('install-banner').classList.add('show');
+  });
+  document.getElementById('install-btn').addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') document.getElementById('install-banner').classList.remove('show');
+    deferredPrompt = null;
+  });
+
+  // ---- INIT ----
+  const todayStr = new Date().toISOString().split('T')[0];
+  document.getElementById('f-date') && (document.getElementById('f-date').value = todayStr);
+  updateStats();
+  renderList();
+</script>
+
+<!-- SERVICE WORKER REGISTRATION -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+
+</body>
+</html>
